@@ -3,3 +3,5 @@ rsconnect::deployApp(appFileManifest = "manifest.txt",
                      launch.browser = F,
                      account = "drees",forceUpdate = T
 )
+
+

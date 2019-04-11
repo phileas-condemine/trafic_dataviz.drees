@@ -18,8 +18,10 @@ shinyServer(function(input, output) {
             
         })
         rapports=rbindlist(rapports)
+        rapports=rapports%>%filter(Date>=input$date_range[1]&Date<=input$date_range[2])
         
-        g <- ggplot(rapports,aes(x=Date,y=Users,color=app))+geom_line()
+        
+        g <- ggplot(rapports,aes(x=Date,y=Users,color=app))+geom_line()+ggtitle("Analyse du trafic grâce aux données Google Analytics")
         ggplotly(g)
         
     })
