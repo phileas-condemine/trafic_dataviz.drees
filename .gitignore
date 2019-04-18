@@ -2,3 +2,5 @@
 rsconnect/
 *.xlsx
 my_token.RData
+tweet_history/
+.Rhistory
