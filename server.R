@@ -9,7 +9,7 @@ shinyServer(function(input, output) {
         apps=sheets[2:3]
         apps=input$apps_to_show
         rapports=lapply(apps,function(sheet){
-            rapport=read_xlsx("rapports.xlsx",sheet = sheet)
+            rapport=read_xlsx("data/rapports.xlsx",sheet = sheet)
             rapport=rapport[-c(1:13),]
             names(rapport) <- rapport[1,]
             rapport=rapport[-c(1),]

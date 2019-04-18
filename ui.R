@@ -46,14 +46,14 @@ dashboardPage(
                                  start = "2018-01-01",end = NULL,format = "dd-mm-yyyy",
                                  language = "fr",separator = "à",startview = 1)
                   ),
-                     includeHTML("logos.html")
+                     includeHTML("www/logos.html")
                      
                      
     ),
     
     dashboardBody(
         div(style="margin-bottom:50px",shinycssloaders::withSpinner(plotlyOutput("my_plot",height="600px"),size=2)),
-        includeHTML("footer.html")
+        includeHTML("www/footer.html")
     
     )
     
