@@ -7,8 +7,8 @@ www/carto_icon.png
 www/github_icon.png
 www/Marianne.png
 www/Logo_Drees.jpg
-logos.html
-footer.html
-accueil.html
+www/footer.html
+www/logos.html
 www/drees_icon.png
 www/mss_icon.jpg
+data/rapports.xlsx

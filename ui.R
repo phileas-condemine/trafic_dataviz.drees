@@ -35,24 +35,27 @@ dashboardPage(
     ),
     
     dashboardSidebar(sidebarMenu(id="sidebarmenu",
-                  selectInput(inputId="apps_to_show",label="Application à analyser",
-                              choices=sheets,multiple=T,selected=sheets)%>%
+                  selectizeInput(inputId="apps_to_show",label="Application à analyser",
+                              choices=sheets,multiple=T,selected=sheet_example,
+                              options = list(plugins= list('remove_button')))%>%
                       shinyInput_label_embed(
                                   icon("question-circle") %>%
-                                      bs_embed_tooltip(title = 
+                                      bs_embed_tooltip(title =
                         "Choisissez la ou les applications dont vous souhaitez connaître la fréquentation.")
-                              ),
-                  dateRangeInput(inputId="date_range",label="Section temporelle",
-                                 start = "2018-01-01",end = NULL,format = "dd-mm-yyyy",
-                                 language = "fr",separator = "à",startview = 1)
-                  ),
-                     includeHTML("www/logos.html")
+                              )
+                  # ,dateRangeInput(inputId="date_range",label="Section temporelle",
+                  #                start = "2019-01-01",end = NULL,format = "dd-mm-yyyy",
+                  #                language = "fr",separator = "à",startview = 1)
+                  # ,actionButton("refresh","Mettre à jour le graphique",icon=icon("rocket"))
+                  )
+                  # ,includeHTML("www/logos.html")
                      
                      
     ),
     
     dashboardBody(
-        div(style="margin-bottom:50px",shinycssloaders::withSpinner(plotlyOutput("my_plot",height="600px"),size=2)),
+        div(style="margin-bottom:50px",shinycssloaders::withSpinner(
+            dygraphOutput("my_plot",height="600px"),size=2)),#plotlyOutput
         includeHTML("www/footer.html")
     
     )

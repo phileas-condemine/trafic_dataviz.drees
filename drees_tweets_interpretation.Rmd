@@ -1,0 +1,159 @@
+---
+title: "drees_tweets_interpretation"
+author: "Philéas Condemine"
+date: "06/06/2019"
+output: html_document
+---
+
+```{r}
+setwd("C:/Users/phileas.condemine/Documents/dataviz.drees_consultations_GAnalytics/")
+library(dplyr)
+library(plotly)
+library(dygraphs)
+library(tidytext)
+library(wordcloud2)
+library(topicmodels)
+library(LDAvis)
+library(data.table)
+```
+
+
+```{r}
+
+nm = list.files("tweet_history/")[1]
+tweets=purrr::map(list.files("tweet_history/"),function(nm){
+  load(paste0("tweet_history/",nm))
+  data.table(tweets_drees)
+  # tweets_drees
+})
+tweets=rbindlist(tweets,fill=T)
+# tweets=bind_rows(tweets)
+tweets=unique(tweets,by="status_id")
+tweets%>%
+  mutate(tweet_date=as.Date(created_at))%>%
+  group_by(tweet_date)%>%
+  summarise(nb=n())%>%
+  plot_ly(x=~tweet_date,y=~nb,type="bar")
+tweets$text%>%head
+
+```
+
+
+```{r}
+# https://guilhermegarcia.github.io/lusiadas.html
+tidy_book = tweets %>% 
+  unnest_tokens(input = text, output = word)
+stopwords=c(tm::stopwords("fr"),"https","http","t.co","drees")
+stopwords_df=data.frame(word=stopwords,stringsAsFactors = F)
+tidy_book = tidy_book %>% 
+  anti_join(stopwords_df)
+
+words = tidy_book %>% 
+  group_by(word) %>% 
+  summarise(freq = n()) %>% 
+  arrange(desc(freq)) 
+
+words = as.data.frame(words)
+
+rownames(words) = words$word
+
+wordcloud2(data = words, size = .5)
+```
+
+
+
+```{r}
+# http://datacm.blogspot.com/2017/03/lda-visualization-with-r-topicmodels.html
+library(data.table)
+library(tm)
+library(topicmodels)
+library(LDAvis)
+library(slam)
+library(tsne)
+library(servr)
+tweets_text <- tweets$text
+# tweets_text <- iconv(tweets_text,from="WINDOWS-1252",to="UTF-8")
+tweets_text <- tolower(tweets_text)
+tweets_text <- stringr::str_replace_all(tweets_text,
+                                        c("’"="",
+                                          "c'"="",
+                                          "d'"="",
+                                          "j'"="",
+                                          "l'"="",
+                                          "m'"="",
+                                          "n'"="",
+                                          "qu'"="que ",
+                                          "s'"="",
+                                          "t'"="",
+                                          "'"=""))
+
+tweets_text <- iconv(tweets_text,from="UTF-8",to="ASCII//TRANSLIT")
+# head(tweets_text)
+cp <- VCorpus(VectorSource(tweets_text))
+cp <- tm_map(cp, removeWords, stopwords)
+cp <- tm_map (cp, removePunctuation)
+cp <- tm_map(cp, removeNumbers)
+cp <- tm_map(cp, stripWhitespace)
+
+ndocs <- length(cp)
+minDocFreq <- ndocs * 0.01
+maxDocFreq <- ndocs * 0.9
+# https://stackoverflow.com/questions/25905144/removing-overly-common-words-occur-in-more-than-80-of-the-documents-in-r
+dtm <- DocumentTermMatrix(cp, control = list(bounds = list(global = c(minDocFreq, maxDocFreq))))
+# dimnames(dtm)[[2]][c(1,101)]
+# dtm=dtm[,-c(1,101)]
+rowTotals <- apply(dtm , 1, sum) #nombre de mots restants après pre-processing dans chaque tweet
+dtm   <- dtm[rowTotals> 1, ]    
+n=10
+topic_res <- LDA(x =dtm,k =  n)
+Terms <- terms(topic_res, 10)
+Terms
+fitted=topic_res
+doc_term=dtm
+
+
+phi <- as.matrix(posterior(fitted)$terms)
+theta <- as.matrix(posterior(fitted)$topics)
+vocab <- colnames(phi)
+term_freq <- slam::col_sums(doc_term)
+doc.length <- as.vector(table(doc_term$i))
+# dimnames(dtm)[[2]]
+
+
+# https://stackoverflow.com/questions/35830008/r-ldavis-k-2-createjson-error
+svd_tsne <- function(x) tsne(svd(x)$u)
+
+json <- LDAvis::createJSON(phi = phi, 
+           theta = theta ,
+           doc.length = doc.length, 
+           vocab = vocab, 
+           term.frequency = term_freq
+           # mds.method = svd_tsne,
+        # ,plot.opts = list(xlab="", ylab="")
+        )
+
+pred=posterior(topic_res)
+# plot(pred$terms[,"agnesbuzyn"])
+topics=data.table(pred$topics)
+topics$id=1:nrow(topics)
+topics = melt.data.table(topics,id.vars="id")
+topics[,variable:=as.character(variable)]
+setorder(topics,-value)
+topics = topics[,list(topic=variable[1],topic2=variable[2],
+             prob_topic=value[1],prob_topic2=value[2]),
+       by="id"]
+topics[,ratio_2_1:=prob_topic/prob_topic2]
+
+top_ranks=which(topics$ratio_2_1>quantile(topics$ratio_2_1,.9))
+top_ranks=data.frame(id=top_ranks,topic=topics$topic[top_ranks],prob=topics$prob_topic[top_ranks],ratio=topics$ratio_2_1[top_ranks])
+top_ranks$id_in_dtm=dimnames(dtm)[[1]][top_ranks$id]
+tweets_text[as.numeric(top_ranks$id_in_dtm)]
+setorder(topics,-ratio_2_1)
+# steps=1:99/100
+# dt=data.frame(x=steps,y=quantile(topics$ratio_2_1,steps))
+# ggplot(dt)+geom_line(aes(x=x,y=y))
+# setorder(topics,-ratio_2_1)
+View(topics[,c("topic","prob_topic","topic2","prob_topic2","ratio_2_1")])
+serVis(json ,open.browser = T)
+```
+
